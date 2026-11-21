@@ -49,7 +49,14 @@
       flex-direction: column;
       justify-content: center;
     }
-    .heading { margin-bottom: 22px; }
+    .app[hidden] { display: none; }
+    .heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
     .eyebrow {
       display: flex;
       align-items: center;
@@ -74,7 +81,7 @@
       width: fit-content;
       margin: 0;
       font-family: 'Arial Black', Impact, 'Trebuchet MS', sans-serif;
-      font-size: clamp(54px, 13vw, 72px);
+      font-size: clamp(26px, calc(21vw - 34px), 68px);
       line-height: .98;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -243,6 +250,31 @@
     .timer-btn:hover { background: #0d5d3e; }
     .timer-btn.running { font-size: 36px; line-height: 1; }
     .timer-btn.warning, .timer-btn.warning:hover { background: var(--red); }
+    .view-btn {
+      width: auto;
+      min-height: 44px;
+      padding: 7px 12px;
+      background: #fffdfa;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.15;
+      letter-spacing: 0;
+      border-radius: 12px;
+    }
+    .view-btn:hover { background: var(--paper); }
+    .history-view { justify-content: flex-start; padding-top: 0; }
+    .history-bar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      padding: 14px 0 18px;
+      background: var(--cream);
+    }
+    .past-cards { display: grid; gap: 24px; }
+    .past-empty { margin: 18px 0; text-align: center; }
+    .past-cards:not(:empty) + .past-empty { display: none; }
     .under-note { padding: 18px 0 0; text-align: center; font-size: 12px; color: #817364; font-weight: 600; }
     @media (max-width: 440px) {
       .app { width: min(100% - 34px, 450px); padding-top: 22px; padding-bottom: 22px; }
@@ -251,7 +283,8 @@
       .tasks { gap: 8px; }
       .task { min-height: 109px; padding: 12px 13px; border-radius: 12px; }
       .button-wrap { padding-top: 19px; }
-      .next-btn { min-height: 64px; }
+      .next-btn:not(.view-btn) { min-height: 64px; }
+      .history-view { padding-top: 0; }
     }
     @media (max-height: 730px) {
       .app { justify-content: flex-start; }
@@ -266,11 +299,10 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <main class="app" id="game-view">
     <header class="heading">
-
       <h1>ACTIVITY</h1>
-
+      <button class="next-btn view-btn" type="button" id="show-history">Прошлые<br>карточки</button>
     </header>
     <section class="game-card" id="game-card" aria-label="Карточка Activity" aria-live="polite" aria-atomic="true">
       <div class="card-bar"><strong>Твоя карточка</strong><span class="card-count" id="card-count">01 / 100</span><span class="three-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
@@ -297,11 +329,19 @@
     </div>
 
   </main>
+  <main class="app history-view" id="history-view" aria-label="Прошлые карточки" hidden>
+    <div class="history-bar">
+      <button class="next-btn view-btn" type="button" id="show-game">Вернуться на главный экран</button>
+    </div>
+    <div class="past-cards" id="past-cards"></div>
+    <p class="past-empty">Прошлых карточек пока нет.</p>
+  </main>
   <script>
     const cards = [[{"word":"Дирижабль","points":3,"open":false},{"word":"Гравитация","points":4,"open":false},{"word":"Канатоходец","points":4,"open":false}],[{"word":"Перископ","points":4,"open":false},{"word":"Дежавю","points":4,"open":false},{"word":"Археолог","points":4,"open":false}],[{"word":"Обсерватория","points":5,"open":false},{"word":"Компромисс","points":4,"open":false},{"word":"Дирижёр","points":3,"open":false}],[{"word":"Снегоход","points":3,"open":false},{"word":"Конспирация","points":5,"open":false},{"word":"Фокусник","points":3,"open":false}],[{"word":"Маяк","points":3,"open":false},{"word":"Иллюзия","points":4,"open":false},{"word":"Сапёр","points":4,"open":false}],[{"word":"Подводная лодка","points":3,"open":false},{"word":"Импровизация","points":4,"open":false},{"word":"Водолаз","points":3,"open":false}],[{"word":"Печатная машинка","points":4,"open":false},{"word":"Ностальгия","points":4,"open":false},{"word":"Изобретатель","points":4,"open":false}],[{"word":"Ветряная мельница","points":3,"open":false},{"word":"Парадокс","points":5,"open":false},{"word":"Альпинист","points":3,"open":false}],[{"word":"Парашют","points":3,"open":false},{"word":"Аукцион","points":4,"open":false},{"word":"Скульптор","points":3,"open":false}],[{"word":"Шлагбаум","points":3,"open":false},{"word":"Маскировка","points":3,"open":false},{"word":"Шпион","points":3,"open":false}],[{"word":"Тепловоз","points":4,"open":false},{"word":"Экспедиция","points":3,"open":false},{"word":"Каскадёр","points":4,"open":false}],[{"word":"Голограмма","points":5,"open":false},{"word":"Эхо","points":3,"open":false},{"word":"Переводчик","points":4,"open":false}],[{"word":"Космическая станция","points":6,"open":true},{"word":"Орбита","points":4,"open":false},{"word":"Космонавт","points":3,"open":false}],[{"word":"Капсула времени","points":5,"open":false},{"word":"Традиция","points":3,"open":false},{"word":"Палеонтолог","points":5,"open":false}],[{"word":"Музыкальная шкатулка","points":4,"open":false},{"word":"Мелодия","points":3,"open":false},{"word":"Жонглёр","points":3,"open":false}],[{"word":"Металлоискатель","points":4,"open":false},{"word":"Клад","points":3,"open":false},{"word":"Пират","points":3,"open":false}],[{"word":"Гидрант","points":4,"open":false},{"word":"Эвакуация","points":4,"open":false},{"word":"Пожарный","points":3,"open":false}],[{"word":"Вертолётная площадка","points":5,"open":false},{"word":"Турбулентность","points":5,"open":false},{"word":"Пилот","points":3,"open":false}],[{"word":"Песочные часы","points":3,"open":false},{"word":"Дедлайн","points":4,"open":false},{"word":"Часовщик","points":5,"open":false}],[{"word":"Планетарий","points":5,"open":false},{"word":"Созвездие","points":3,"open":false},{"word":"Астроном","points":4,"open":false}],[{"word":"Складной велосипед","points":4,"open":false},{"word":"Равновесие","points":3,"open":false},{"word":"Велогонщик","points":3,"open":false}],[{"word":"Арбалет","points":4,"open":false},{"word":"Траектория","points":4,"open":false},{"word":"Лучник","points":3,"open":false}],[{"word":"Светофор","points":3,"open":false},{"word":"Приоритет","points":5,"open":false},{"word":"Регулировщик","points":4,"open":false}],[{"word":"Теплица","points":3,"open":false},{"word":"Фотосинтез","points":6,"open":true},{"word":"Садовник","points":3,"open":false}],[{"word":"Ледокол","points":4,"open":false},{"word":"Айсберг","points":3,"open":false},{"word":"Капитан","points":3,"open":false}],[{"word":"Плотина","points":4,"open":false},{"word":"Наводнение","points":3,"open":false},{"word":"Спасатель","points":3,"open":false}],[{"word":"Подъёмный кран","points":3,"open":false},{"word":"Реконструкция","points":5,"open":false},{"word":"Строитель","points":3,"open":false}],[{"word":"Секстант","points":5,"open":false},{"word":"Координаты","points":5,"open":false},{"word":"Мореплаватель","points":5,"open":false}],[{"word":"Видеокамера","points":3,"open":false},{"word":"Монтаж","points":4,"open":false},{"word":"Режиссёр","points":4,"open":false}],[{"word":"Пульт управления","points":4,"open":false},{"word":"Автоматизация","points":5,"open":false},{"word":"Робот","points":3,"open":false}],[{"word":"Батискаф","points":4,"open":false},{"word":"Давление","points":3,"open":false},{"word":"Океанолог","points":5,"open":false}],[{"word":"Лабиринт","points":3,"open":false},{"word":"Стратегия","points":4,"open":false},{"word":"Детектив","points":3,"open":false}],[{"word":"Метеостанция","points":5,"open":false},{"word":"Прогноз","points":3,"open":false},{"word":"Метеоролог","points":5,"open":false}],[{"word":"Трамплин","points":3,"open":false},{"word":"Инерция","points":5,"open":false},{"word":"Прыгун с трамплина","points":5,"open":false}],[{"word":"Калейдоскоп","points":5,"open":false},{"word":"Симметрия","points":4,"open":false},{"word":"Художник","points":3,"open":false}],[{"word":"Компас","points":3,"open":false},{"word":"Ориентирование","points":4,"open":false},{"word":"Следопыт","points":4,"open":false}],[{"word":"Солнечная батарея","points":3,"open":false},{"word":"Энергосбережение","points":4,"open":false},{"word":"Электрик","points":3,"open":false}],[{"word":"Книга-раскладушка","points":4,"open":false},{"word":"Спойлер","points":3,"open":false},{"word":"Библиотекарь","points":3,"open":false}],[{"word":"Рентгеновский снимок","points":4,"open":false},{"word":"Диагноз","points":4,"open":false},{"word":"Хирург","points":4,"open":false}],[{"word":"Зубчатая передача","points":5,"open":false},{"word":"Механизм","points":4,"open":false},{"word":"Автомеханик","points":3,"open":false}],[{"word":"Дом на дереве","points":3,"open":false},{"word":"Уединение","points":5,"open":false},{"word":"Отшельник","points":5,"open":false}],[{"word":"Витраж","points":5,"open":false},{"word":"Отражение","points":3,"open":false},{"word":"Стеклодув","points":5,"open":false}],[{"word":"Гончарный круг","points":4,"open":false},{"word":"Ремесло","points":4,"open":false},{"word":"Гончар","points":4,"open":false}],[{"word":"Фонтан","points":3,"open":false},{"word":"Водоворот","points":3,"open":false},{"word":"Пловец","points":3,"open":false}],[{"word":"Шатёр","points":3,"open":false},{"word":"Фестиваль","points":3,"open":false},{"word":"Циркач","points":4,"open":false}],[{"word":"Аквариум","points":3,"open":false},{"word":"Экосистема","points":5,"open":false},{"word":"Дрессировщик","points":4,"open":false}],[{"word":"Географическая карта","points":3,"open":false},{"word":"Масштаб","points":4,"open":false},{"word":"Картограф","points":5,"open":false}],[{"word":"Сцена театра","points":3,"open":false},{"word":"Антракт","points":4,"open":false},{"word":"Актёр","points":3,"open":false}],[{"word":"Эскалатор","points":3,"open":false},{"word":"Пассажиропоток","points":5,"open":false},{"word":"Контролёр","points":4,"open":false}],[{"word":"Шахматная доска","points":3,"open":false},{"word":"Комбинация","points":3,"open":false},{"word":"Шахматист","points":3,"open":false}],[{"word":"Катапульта","points":4,"open":false},{"word":"Импульс","points":5,"open":false},{"word":"Рыцарь","points":3,"open":false}],[{"word":"Водяная мельница","points":3,"open":false},{"word":"Течение","points":3,"open":false},{"word":"Рыбак","points":3,"open":false}],[{"word":"Смотровая башня","points":4,"open":false},{"word":"Панорама","points":4,"open":false},{"word":"Экскурсовод","points":4,"open":false}],[{"word":"Снегоуборочная машина","points":4,"open":false},{"word":"Гололёд","points":3,"open":false},{"word":"Дворник","points":3,"open":false}],[{"word":"Канатная дорога","points":4,"open":false},{"word":"Высотобоязнь","points":6,"open":true},{"word":"Турист","points":3,"open":false}],[{"word":"Корабль в бутылке","points":6,"open":true},{"word":"Терпение","points":3,"open":false},{"word":"Ювелир","points":5,"open":false}],[{"word":"Палатка","points":3,"open":false},{"word":"Выживание","points":3,"open":false},{"word":"Путешественник","points":3,"open":false}],[{"word":"Пожарная лестница","points":4,"open":false},{"word":"Тревога","points":3,"open":false},{"word":"Сигнальщик","points":5,"open":false}],[{"word":"Скейт-парк","points":4,"open":false},{"word":"Трюк","points":3,"open":false},{"word":"Скейтбордист","points":3,"open":false}],[{"word":"Гейзер","points":4,"open":false},{"word":"Извержение","points":4,"open":false},{"word":"Вулканолог","points":5,"open":false}],[{"word":"Микроскоп","points":3,"open":false},{"word":"Бактерия","points":3,"open":false},{"word":"Лаборант","points":4,"open":false}],[{"word":"Кофемашина","points":3,"open":false},{"word":"Бодрость","points":3,"open":false},{"word":"Бариста","points":4,"open":false}],[{"word":"Проектор","points":3,"open":false},{"word":"Презентация","points":3,"open":false},{"word":"Лектор","points":4,"open":false}],[{"word":"Бумеранг","points":3,"open":false},{"word":"Возвращение","points":3,"open":false},{"word":"Метатель диска","points":4,"open":false}],[{"word":"Дрон","points":3,"open":false},{"word":"Дистанционное управление","points":4,"open":false},{"word":"Оператор дрона","points":4,"open":false}],[{"word":"Картонный замок","points":3,"open":false},{"word":"Воображение","points":3,"open":false},{"word":"Кукловод","points":5,"open":false}],[{"word":"Лук и колчан","points":4,"open":false},{"word":"Меткость","points":3,"open":false},{"word":"Фехтовальщик","points":4,"open":false}],[{"word":"Телескоп","points":3,"open":false},{"word":"Бесконечность","points":5,"open":false},{"word":"Инопланетянин","points":3,"open":false}],[{"word":"Бронежилет","points":4,"open":false},{"word":"Безопасность","points":3,"open":false},{"word":"Телохранитель","points":3,"open":false}],[{"word":"Чернильница","points":4,"open":false},{"word":"Каллиграфия","points":5,"open":false},{"word":"Переписчик","points":5,"open":false}],[{"word":"Флюгер","points":4,"open":false},{"word":"Направление ветра","points":3,"open":false},{"word":"Моряк","points":3,"open":false}],[{"word":"Железнодорожный мост","points":4,"open":false},{"word":"Переправа","points":3,"open":false},{"word":"Машинист","points":4,"open":false}],[{"word":"Конвейер","points":4,"open":false},{"word":"Производительность","points":5,"open":false},{"word":"Сборщик мебели","points":4,"open":false}],[{"word":"Лавовая лампа","points":4,"open":false},{"word":"Медитация","points":4,"open":false},{"word":"Йог","points":3,"open":false}],[{"word":"Радиотелескоп","points":5,"open":false},{"word":"Сигнал","points":3,"open":false},{"word":"Радиоведущий","points":4,"open":false}],[{"word":"Скалодром","points":4,"open":false},{"word":"Соревнование","points":3,"open":false},{"word":"Скалолаз","points":3,"open":false}],[{"word":"Киноплёнка","points":4,"open":false},{"word":"Премьера","points":3,"open":false},{"word":"Кинооператор","points":5,"open":false}],[{"word":"Спутниковая антенна","points":3,"open":false},{"word":"Связь","points":3,"open":false},{"word":"Репортёр","points":4,"open":false}],[{"word":"Пожарный щит","points":4,"open":false},{"word":"Инструкция","points":3,"open":false},{"word":"Инспектор","points":4,"open":false}],[{"word":"Складной нож-мультитул","points":5,"open":false},{"word":"Универсальность","points":5,"open":false},{"word":"Мастер на все руки","points":6,"open":true}],[{"word":"Кассовый аппарат","points":4,"open":false},{"word":"Скидка","points":3,"open":false},{"word":"Кассир","points":3,"open":false}],[{"word":"Дорожный каток","points":3,"open":false},{"word":"Асфальтирование","points":5,"open":false},{"word":"Дорожный рабочий","points":3,"open":false}],[{"word":"Электросамокат","points":3,"open":false},{"word":"Ограничение скорости","points":4,"open":false},{"word":"Инспектор дорожного движения","points":5,"open":false}],[{"word":"Паровоз","points":3,"open":false},{"word":"Расписание","points":3,"open":false},{"word":"Проводник","points":3,"open":false}],[{"word":"Песчаные дюны","points":3,"open":false},{"word":"Мираж","points":4,"open":false},{"word":"Караванщик","points":5,"open":false}],[{"word":"Воздушный шар","points":3,"open":false},{"word":"Воздушный поток","points":4,"open":false},{"word":"Воздухоплаватель","points":5,"open":false}],[{"word":"Стетоскоп","points":4,"open":false},{"word":"Пульс","points":3,"open":false},{"word":"Врач","points":3,"open":false}],[{"word":"Фотоаппарат мгновенной печати","points":5,"open":false},{"word":"Воспоминание","points":3,"open":false},{"word":"Фотограф","points":3,"open":false}],[{"word":"Электромагнит","points":5,"open":false},{"word":"Магнетизм","points":5,"open":false},{"word":"Физик","points":4,"open":false}],[{"word":"Солнечные часы","points":4,"open":false},{"word":"Часовой пояс","points":4,"open":false},{"word":"Путешественник во времени","points":6,"open":true}],[{"word":"Сушилка для белья","points":3,"open":false},{"word":"Влажность","points":4,"open":false},{"word":"Прачка","points":4,"open":false}],[{"word":"Силуэтный портрет","points":5,"open":false},{"word":"Анонимность","points":5,"open":false},{"word":"Художник-портретист","points":4,"open":false}],[{"word":"Сачок","points":3,"open":false},{"word":"Камуфляж","points":4,"open":false},{"word":"Энтомолог","points":5,"open":false}],[{"word":"Почтовый ящик","points":3,"open":false},{"word":"Адресат","points":4,"open":false},{"word":"Почтальон","points":4,"open":false}],[{"word":"Контейнеровоз","points":4,"open":false},{"word":"Морской маршрут","points":4,"open":false},{"word":"Лоцман","points":5,"open":false}],[{"word":"Пожарный рукав","points":4,"open":false},{"word":"Напор","points":4,"open":false},{"word":"Водопроводчик","points":4,"open":false}],[{"word":"Робот-пылесос","points":3,"open":false},{"word":"Навигация","points":4,"open":false},{"word":"Уборщик","points":3,"open":false}],[{"word":"Автодом","points":3,"open":false},{"word":"Кочевник","points":4,"open":false},{"word":"Автостопщик","points":3,"open":false}],[{"word":"Сейсмограф","points":5,"open":false},{"word":"Землетрясение","points":3,"open":false},{"word":"Лыжник","points":4,"open":false}],[{"word":"Ледяная пещера","points":4,"open":false},{"word":"Сцепление","points":5,"open":false},{"word":"Полярник","points":5,"open":false}]];
     let order = [];
     let lastCard = -1;
     const card = document.getElementById('game-card');
+    const pastCards = document.getElementById('past-cards');
     const nextButton = document.getElementById('next');
     const timerButton = document.getElementById('timer');
     let deadline = 0;
@@ -323,6 +363,16 @@
     }
 
     function newCard() {
+      if (lastCard !== -1) {
+        const previous = card.cloneNode(true);
+        previous.removeAttribute('id');
+        previous.removeAttribute('aria-live');
+        previous.removeAttribute('aria-atomic');
+        previous.classList.remove('swap', 'words-hidden');
+        previous.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+        pastCards.prepend(previous);
+        if (pastCards.childElementCount > 3) pastCards.lastElementChild.remove();
+      }
       if (order.length === 0) shuffleDeck();
       lastCard = order.pop();
       card.classList.remove('swap');
@@ -448,6 +498,20 @@
       timerButton.click();
     });
 
+    const gameView = document.getElementById('game-view');
+    const historyView = document.getElementById('history-view');
+    const showHistory = document.getElementById('show-history');
+    const showGame = document.getElementById('show-game');
+
+    function switchView(historyOpen) {
+      gameView.hidden = historyOpen;
+      historyView.hidden = !historyOpen;
+      window.scrollTo(0, 0);
+      (historyOpen ? showGame : showHistory).focus({preventScroll: true});
+    }
+
+    showHistory.addEventListener('click', () => switchView(true));
+    showGame.addEventListener('click', () => switchView(false));
     nextButton.addEventListener('click', newCard);
     newCard();
   </script>
