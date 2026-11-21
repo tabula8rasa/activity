@@ -228,9 +228,10 @@
       -webkit-tap-highlight-color: transparent;
     }
     .next-btn svg { width: 23px; height: 23px; stroke: currentColor; stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .next-btn:hover { background: #bf1f1b; transform: translateY(-2px); box-shadow: 5px 8px 0 var(--ink); }
-    .next-btn:active { transform: translate(4px, 5px); box-shadow: 1px 1px 0 var(--ink); }
+    .next-btn:where(:enabled):hover { background: #bf1f1b; transform: translateY(-2px); box-shadow: 5px 8px 0 var(--ink); }
+    .next-btn:where(:enabled):active { transform: translate(4px, 5px); box-shadow: 1px 1px 0 var(--ink); }
     .next-btn:focus-visible { outline: 3px solid #2254c4; outline-offset: 4px; }
+    .next-btn:disabled { background: #f3b0ae; color: #512423; cursor: default; }
     .timer-btn {
       margin-top: 14px;
       background: var(--green);
@@ -240,6 +241,7 @@
       -webkit-user-select: none;
     }
     .timer-btn:hover { background: #0d5d3e; }
+    .timer-btn.warning, .timer-btn.warning:hover { background: var(--red); }
     .under-note { padding: 18px 0 0; text-align: center; font-size: 12px; color: #817364; font-weight: 600; }
     @media (max-width: 440px) {
       .app { width: min(100% - 34px, 450px); padding-top: 22px; padding-bottom: 22px; }
@@ -299,13 +301,13 @@
     let order = [];
     let lastCard = -1;
     const card = document.getElementById('game-card');
+    const nextButton = document.getElementById('next');
     const timerButton = document.getElementById('timer');
     let deadline = 0;
     let countdown;
     let lastTap = -Infinity;
     let hold;
     let wasHeld = false;
-    let audio;
     let signal;
 
     function shuffleDeck() {
@@ -333,39 +335,49 @@
       document.getElementById('card-count').textContent = String(lastCard + 1).padStart(2, '0') + ' / ' + cards.length;
     }
 
-    async function scheduleSignals(roundDeadline) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      audio ??= new AudioContext();
-      await audio.resume();
-      if (deadline !== roundDeadline) return;
-
-      const gain = audio.createGain();
-      const tone = audio.createOscillator();
-      gain.gain.value = 0;
-      tone.frequency.value = 880;
-      tone.connect(gain).connect(audio.destination);
-
-      const end = audio.currentTime + (roundDeadline - Date.now()) / 1000;
-      for (const offset of [-10, 0, .3, .6]) {
-        const start = end + offset;
-        if (start < audio.currentTime) continue;
-        gain.gain.setValueAtTime(.18, start);
-        gain.gain.linearRampToValueAtTime(0, start + .18);
+    function createSignalTrack() {
+      const sampleRate = 8000;
+      const samples = new ArrayBuffer(44 + 61 * sampleRate * 2);
+      const wav = new DataView(samples);
+      const labels = {0: 'RIFF', 8: 'WAVE', 12: 'fmt ', 36: 'data'};
+      for (const [offset, label] of Object.entries(labels)) {
+        for (let i = 0; i < label.length; i++) {
+          wav.setUint8(Number(offset) + i, label.charCodeAt(i));
+        }
       }
-      tone.start();
-      tone.stop(end + .8);
-      signal = tone;
+      wav.setUint32(4, samples.byteLength - 8, true);
+      wav.setUint32(16, 16, true);
+      wav.setUint16(20, 1, true); // PCM mono.
+      wav.setUint16(22, 1, true);
+      wav.setUint32(24, sampleRate, true);
+      wav.setUint32(28, sampleRate * 2, true);
+      wav.setUint16(32, 2, true);
+      wav.setUint16(34, 16, true);
+      wav.setUint32(40, samples.byteLength - 44, true);
+
+      const beepSamples = sampleRate / 5;
+      for (const second of [50, 60, 60.3, 60.6]) {
+        const start = Math.round(second * sampleRate);
+        for (let i = 0; i < beepSamples; i++) {
+          const envelope = Math.min(1, i / 40, (beepSamples - i) / 160);
+          const sample = 24000 * envelope * Math.sin(2 * Math.PI * 880 * i / sampleRate);
+          wav.setInt16(44 + (start + i) * 2, sample, true);
+        }
+      }
+      return URL.createObjectURL(new Blob([samples], {type: 'audio/wav'}));
     }
+
+    const signalTrack = createSignalTrack();
 
     function stopTimer(expired = false) {
       clearInterval(countdown);
       deadline = 0;
       lastTap = -Infinity;
-      if (!expired) signal?.stop();
-      signal = undefined;
+      if (!expired) signal.pause();
       card.classList.remove('words-hidden');
-      timerButton.textContent = expired ? 'ВРЕМЯ ВЫШЛО' : 'ТАЙМЕР';
+      nextButton.disabled = false;
+      timerButton.classList.remove('warning');
+      timerButton.textContent = 'ТАЙМЕР';
     }
 
     function updateTimer() {
@@ -373,7 +385,8 @@
       if (seconds <= 0) {
         stopTimer(true);
       } else {
-        const label = `ТАЙМЕР · ${seconds} с`;
+        const label = String(seconds);
+        timerButton.classList.toggle('warning', seconds <= 10);
         if (timerButton.textContent !== label) timerButton.textContent = label;
       }
     }
@@ -387,7 +400,10 @@
       if (!deadline) {
         deadline = Date.now() + 60000;
         card.classList.add('words-hidden');
-        scheduleSignals(deadline).catch(() => {});
+        nextButton.disabled = true;
+        signal = new Audio(signalTrack);
+        // Start the whole track from the tap so later signals need no new gesture.
+        signal.play().catch(() => {});
         updateTimer();
         countdown = setInterval(updateTimer, 100);
       } else if (now - lastTap <= 350) {
@@ -430,7 +446,7 @@
       timerButton.click();
     });
 
-    document.getElementById('next').addEventListener('click', newCard);
+    nextButton.addEventListener('click', newCard);
     newCard();
   </script>
 </body>
