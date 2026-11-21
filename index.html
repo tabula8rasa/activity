@@ -293,7 +293,7 @@
     <div class="button-wrap">
       <button class="next-btn" type="button" id="next">НОВАЯ КАРТА <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
       <button class="next-btn timer-btn" type="button" id="timer" aria-describedby="timer-help">ТАЙМЕР</button>
-      <div class="under-note" id="timer-help">Двойное нажатие показывает или скрывает слова. Удерживайте 2 секунды для остановки.</div>
+      <div class="under-note" id="timer-help">Двойное нажатие показывает или скрывает слова. Удерживайте 1 секунду для остановки.</div>
     </div>
 
   </main>
@@ -423,7 +423,7 @@
         hold = setTimeout(() => {
           wasHeld = true;
           if (deadline) stopTimer();
-        }, 2000);
+        }, 1000);
       }
     }
 
