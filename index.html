@@ -241,6 +241,7 @@
       -webkit-user-select: none;
     }
     .timer-btn:hover { background: #0d5d3e; }
+    .timer-btn.running { font-size: 36px; line-height: 1; }
     .timer-btn.warning, .timer-btn.warning:hover { background: var(--red); }
     .under-note { padding: 18px 0 0; text-align: center; font-size: 12px; color: #817364; font-weight: 600; }
     @media (max-width: 440px) {
@@ -376,7 +377,7 @@
       if (!expired) signal.pause();
       card.classList.remove('words-hidden');
       nextButton.disabled = false;
-      timerButton.classList.remove('warning');
+      timerButton.classList.remove('running', 'warning');
       timerButton.textContent = 'ТАЙМЕР';
     }
 
@@ -401,6 +402,7 @@
         deadline = Date.now() + 60000;
         card.classList.add('words-hidden');
         nextButton.disabled = true;
+        timerButton.classList.add('running');
         signal = new Audio(signalTrack);
         // Start the whole track from the tap so later signals need no new gesture.
         signal.play().catch(() => {});
